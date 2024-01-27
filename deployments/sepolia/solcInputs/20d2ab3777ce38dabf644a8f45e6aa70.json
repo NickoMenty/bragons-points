@@ -1,0 +1,35 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/SignatureVerification.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract SignatureVerification {\n\n    error OnlyOwnerError();\n    error TaskNumberDoesNotExistError();\n    error UserAlreadyCompletedTaskError();\n    error InvalidSignatureError();\n    error SignatureAlreadyUsedError();\n\n    address immutable i_owner;\n    uint256 public taskCount;\n    mapping(uint256 => uint256) public taskToPrize;\n    mapping(address => mapping(uint256 => bool)) public userTaskCompleted;\n    mapping(bytes32 => bool) public usedSignatures;\n    mapping(address => uint256) public userPrizeBalance;\n\n    modifier onlyOwner() {\n        if (msg.sender != i_owner) {\n            revert OnlyOwnerError();\n        }\n        _;\n    }\n\n    constructor() {\n        i_owner = msg.sender;\n        taskCount = 0;\n    }\n\n    function addTask(uint256 _prize) public onlyOwner {\n        taskCount++;\n        taskToPrize[taskCount] = _prize;\n    }\n\n    function setPrizeForTask(uint256 _taskNumber, uint256 _prize) public onlyOwner {\n        if (_taskNumber > taskCount) {\n            revert TaskNumberDoesNotExistError();\n        }\n        taskToPrize[_taskNumber] = _prize;\n    }\n\n    function verifyMessage(bytes32 _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s, uint256 _taskNumber) public {\n        if (_taskNumber > taskCount) {\n            revert TaskNumberDoesNotExistError();\n        }\n        if (userTaskCompleted[msg.sender][_taskNumber]) {\n            revert UserAlreadyCompletedTaskError();\n        }\n        if (usedSignatures[_hashedMessage]) {\n            revert SignatureAlreadyUsedError();\n        }\n\n        bytes memory prefix = \"\\x19Ethereum Signed Message:\\n32\";\n        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, _hashedMessage));\n        address recoveredSigner = ecrecover(prefixedHashMessage, _v, _r, _s);\n\n        if (i_owner == recoveredSigner) {\n            userTaskCompleted[msg.sender][_taskNumber] = true;\n\n            userPrizeBalance[msg.sender] += taskToPrize[_taskNumber];\n\n            usedSignatures[_hashedMessage] = true;\n        } else {\n            revert InvalidSignatureError();\n        }\n    }\n\n    function readOwner() public view returns(address) {\n        return i_owner;\n    }\n\n    function userBalance(address _user) public view returns(uint256) {\n        return userPrizeBalance[_user];\n    }\n\n    \n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": false,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
