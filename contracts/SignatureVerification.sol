@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract SignatureVerification {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract SignatureVerification is Ownable{
 
     error OnlyOwnerError();
     error TaskNumberDoesNotExistError();
@@ -15,13 +17,6 @@ contract SignatureVerification {
     mapping(address => mapping(uint256 => bool)) public userTaskCompleted;
     mapping(bytes32 => bool) public usedSignatures;
     mapping(address => uint256) public userPrizeBalance;
-
-    modifier onlyOwner() {
-        if (msg.sender != i_owner) {
-            revert OnlyOwnerError();
-        }
-        _;
-    }
 
     constructor() {
         i_owner = msg.sender;
