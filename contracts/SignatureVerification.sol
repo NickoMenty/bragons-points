@@ -3,20 +3,23 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+error OnlyOwnerError();
+error TaskNumberDoesNotExistError();
+error UserAlreadyCompletedTaskError();
+error InvalidSignatureError();
+error SignatureAlreadyUsedError();
+error RefereeIsUserError();
+
 contract SignatureVerification is Ownable{
 
-    error OnlyOwnerError();
-    error TaskNumberDoesNotExistError();
-    error UserAlreadyCompletedTaskError();
-    error InvalidSignatureError();
-    error SignatureAlreadyUsedError();
-
-    address immutable i_owner;
+    address immutable private i_owner;
     uint256 public taskCount;
-    mapping(uint256 => uint256) public taskToPrize;
-    mapping(address => mapping(uint256 => bool)) public userTaskCompleted;
-    mapping(bytes32 => bool) public usedSignatures;
-    mapping(address => uint256) public userPrizeBalance;
+    mapping(uint256 => uint256) private taskToPrize;
+    mapping(address => mapping(uint256 => bool)) private userTaskCompleted;
+    mapping(bytes32 => bool) private usedSignatures;
+    mapping(address => uint256) private userPrizeBalance;
+    mapping(address => address) private userReferee;
+    mapping(address => bool) private userSetReferee;
 
     constructor() {
         i_owner = msg.sender;
@@ -33,6 +36,17 @@ contract SignatureVerification is Ownable{
             revert TaskNumberDoesNotExistError();
         }
         taskToPrize[_taskNumber] = _prize;
+    }
+
+    function setReferee(address _referee) public {
+        if (_referee == msg.sender) {
+            revert RefereeIsUserError(); 
+        }
+        if (userSetReferee[msg.sender]) {
+            revert RefereeIsUserError(); 
+        }
+        userReferee[msg.sender] = _referee;
+        userSetReferee[msg.sender] = true;
     }
 
     function verifyMessage(bytes32 _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s, uint256 _taskNumber) public {
@@ -53,21 +67,37 @@ contract SignatureVerification is Ownable{
         if (i_owner == recoveredSigner) {
             userTaskCompleted[msg.sender][_taskNumber] = true;
 
-            userPrizeBalance[msg.sender] += taskToPrize[_taskNumber];
+            uint256 prize = taskToPrize[_taskNumber];
+            userPrizeBalance[msg.sender] += prize;
 
             usedSignatures[_hashedMessage] = true;
+
+            address referee = userReferee[msg.sender];
+            if (referee != address(0)) {
+                uint256 refBonus = prize / 10;
+                uint256 userBonus = prize / 50; 
+                userPrizeBalance[referee] += refBonus;
+                userPrizeBalance[msg.sender] += userBonus;
+            }
         } else {
             revert InvalidSignatureError();
         }
     }
 
-    function readOwner() public view returns(address) {
-        return i_owner;
-    }
 
-    function userBalance(address _user) public view returns(uint256) {
+    function getUserBalance(address _user) public view returns(uint256) {
         return userPrizeBalance[_user];
     }
 
+    function getUserReferee(address _user) public view returns (address) {
+        return userReferee[_user];
+    }
+
+    function getUserCompletedTasks(address _user, uint256 _task) public view returns (bool) {
+        return userTaskCompleted[_user][_task];
+    }
     
+    function getTaskToPrize(uint256 _task) public view returns (uint256) {
+        return taskToPrize[_task];
+    }
 }
