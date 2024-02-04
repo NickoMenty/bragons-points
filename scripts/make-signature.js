@@ -15,7 +15,7 @@ async function main() {
     const wallet = new ethers.Wallet(privateKey, provider);
 
     // Data to be signed
-    const dataToSign = '12';
+    const dataToSign = 'test3';
     const hashedDataToSign = ethers.solidityPackedKeccak256(["string"], [dataToSign]);
 
     // Generate the signature
