@@ -85,16 +85,16 @@ contract SignatureVerification is Ownable{
     }
 
 
-    function getUserBalance() public view returns(uint256) {
-        return userPrizeBalance[msg.sender];
+    function getUserBalance(address _user) public view returns(uint256) {
+        return userPrizeBalance[_user];
     }
 
-    function getUserReferee() public view returns (address) {
-        return userReferee[msg.sender];
+    function getUserReferee(address _user) public view returns (address) {
+        return userReferee[_user];
     }
 
-    function getUserCompletedTasks(uint256 _task) public view returns (bool) {
-        return userTaskCompleted[msg.sender][_task];
+    function getUserCompletedTasks(address _user, uint256 _task) public view returns (bool) {
+        return userTaskCompleted[_user][_task];
     }
     
     function getTaskToPrize(uint256 _task) public view returns (uint256) {
